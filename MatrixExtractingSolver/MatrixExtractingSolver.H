@@ -5,6 +5,9 @@
 
 namespace Foam
 {
+  // Forward declare Foam::Time
+  class Time;
+  
   class MatrixExtractingSolver : public lduMatrix::solver
   {
     // Private Member Functions
@@ -58,11 +61,13 @@ namespace Foam
     // Helper functions
     void writeVector(const scalarField& x, const std::string& fileName) const;
     void writeMatrix(const lduMatrix& A, const std::string& fileName) const;
-
+    
+    virtual bool shouldWrite() const;
   private:
     // This is the actual solver to which we delegate the work.
     autoPtr<lduMatrix::solver> worker;
-
+    // Reference to the application's Time object
+    const Time& appTime;
   };
 } // End namespace Foam
 

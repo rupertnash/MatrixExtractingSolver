@@ -1,5 +1,6 @@
 #include "MatrixExtractingSolver.H"
 #include "fileStat.H"
+#include "Time.H"
 #include <fstream>
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -35,7 +36,9 @@ Foam::MatrixExtractingSolver::MatrixExtractingSolver
    coupleIntCoeffs,
    interfaces,
    dict
-   )
+   ),
+  // Get the runTime object
+  appTime(matrix.mesh().thisDb().time())
 {
   // Initialise the delegate
   const dictionary& workerDict = dict.subDict("worker");
@@ -68,13 +71,36 @@ Foam::solverPerformance Foam::MatrixExtractingSolver::solve
   // can query for useful things.
   solverPerformance sPerf = worker->solve(x, b, cmpt);
   
-  // Figure out a base file name
-  word baseName = sPerf.fieldName() + sPerf.solverName();
-  // Write the system.
-  writeVector(b, baseName + ".vec");
-  writeMatrix(matrix_, baseName + ".coo");
+  if (shouldWrite())
+  {
+    const fileName base = appTime.timePath() + "/matrices/" + sPerf.fieldName();
+    
+    // mkdir -p $base
+    mkDir(base);
 
+    fileName vecFile;
+    for(int i = 0; ; ++i)
+    {
+      // Find the iteration number - i.e. the smallest value that
+      // doesn't exist.
+      std::ostringstream vecFileBase;
+      vecFileBase << i << ".vec";
+      vecFile = base + "/" + vecFileBase.str();
+      if (vecFile.type() == fileName::UNDEFINED)
+	break;
+      
+      vecFile = "";
+    }
+    // Write the system.
+    writeVector(b, vecFile);
+    writeMatrix(matrix_, vecFile.lessExt() + ".coo");
+  }
   return sPerf;
+}
+
+bool Foam::MatrixExtractingSolver::shouldWrite() const
+{
+  return true;
 }
 
 void Foam::MatrixExtractingSolver::writeVector(const scalarField& x, const std::string& fileName) const

@@ -6,9 +6,6 @@ specified by the "worker" keyword in the case's system/fvSolution
 dictionary.
 
 LIMITATIONS:
-
- - Only allows one solution of each problem matrix - on the second
-   attempt it will bring down the solver
    
  - Almost certainly doesn't work in parallel
 
@@ -69,3 +66,27 @@ solvers
     
     // Other solvers...
 }
+
+OUTPUT:
+
+ - Writes every time the specified field is solved for in a standard
+   OpenFOAM time directory
+
+ - Writes field matrices in a directory named for the fieldName passed
+   to the linear solve (so you will often get "Ux" and "Uy"
+   directories)
+
+ - In each time/field directory there will be a series of zero-indexed
+   files for the matrix (i.coo) and vector (i.vec) that define the
+   linear system. If there are multiple solves per timestep there will
+   be more than one, e.g. for icoFoam you will get (at least) two
+   matrixes because of the pressure correction in the PISO algorithm.
+   
+ - Vector format: simple ASCII with one element per line
+
+ - Matrix format: Uses sparse COO format in simple ASCII. Each line is:
+   row col val
+   for every non-zero element in the matrix.
+
+ - IMPORTANT: if you re-run this, be sure to remove all matrix
+   directories!
