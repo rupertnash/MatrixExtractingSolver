@@ -53,12 +53,20 @@ Foam::MatrixExtractingSolver::MatrixExtractingSolver
 void Foam::MatrixExtractingSolver::readControls()
 {
   lduMatrix::solver::readControls();
-  const dictionary& workerDict = controlDict_.subDict("worker");
+
+  // Work around different APIs on solver to get the control dictionary...
+#ifdef ON_EXTEND
+  const dictionary& solverDict = dict();
+#else
+  const dictionary& solverDict = controlDict_;
+#endif
+
+  const dictionary& workerDict = solverDict.subDict("worker");
   worker->read(workerDict);
 }
 
 //- Solve the matrix with this solver
-Foam::solverPerformance Foam::MatrixExtractingSolver::solve
+SolverPerformance Foam::MatrixExtractingSolver::solve
 (
  scalarField& x,
  const scalarField& b,
@@ -69,11 +77,11 @@ Foam::solverPerformance Foam::MatrixExtractingSolver::solve
 
   // Do this first so it sets up the solverPerformance object which we
   // can query for useful things.
-  solverPerformance sPerf = worker->solve(x, b, cmpt);
+  ::SolverPerformance sPerf = worker->solve(x, b, cmpt);
   
   if (shouldWrite())
   {
-    const fileName base = appTime.timePath() + "/matrices/" + sPerf.fieldName();
+    const fileName base = appTime.timePath() + "/matrices/" + fieldName();
     
     // mkdir -p $base
     mkDir(base);
@@ -166,7 +174,7 @@ void Foam::MatrixExtractingSolver::writeMatrix(const lduMatrix& A, const std::st
   labelList::const_iterator& loColPtr = loAddrPtr;
 
   const scalarField& up = A.upper();
-  scalarField::const_iterator upPtr = up.begin(), upEnd = up.end();
+  scalarField::const_iterator upPtr = up.begin();
   labelList::const_iterator& upRowPtr = loAddrPtr;
   labelList::const_iterator& upColPtr = upAddrPtr;
   

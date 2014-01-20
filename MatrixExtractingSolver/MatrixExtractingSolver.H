@@ -1,7 +1,20 @@
 #ifndef MATRIXEXTRACTINGSOLVER_H
 #define MATRIXEXTRACTINGSOLVER_H
 
+// Create the header CrossPlatform.H in this directory.
+// If you are using OpenFoam-extend, then you must define
+// the preprocessor macro ON_EXTEND in that file.
+// If you are not using -extend, then an empty file suffices.
+#include "CrossPlatform.H"
+
 #include "lduMatrix.H"
+
+// Typedefs to be compatible between vanilla and extend
+#ifdef ON_EXTEND
+typedef Foam::lduMatrix::solverPerformance SolverPerformance;
+#else
+typedef Foam::solverPerformance SolverPerformance;
+#endif
 
 namespace Foam
 {
@@ -21,7 +34,7 @@ namespace Foam
   public:
     //- Runtime type information
     TypeName("MatrixExtractingSolver");
-
+    
     //- Construct from matrix components and solver data stream
         MatrixExtractingSolver
 	(
@@ -41,7 +54,7 @@ namespace Foam
     // Member functions
 
     //- Solve the matrix with this solver
-    virtual solverPerformance solve
+    virtual ::SolverPerformance solve
     (
      scalarField& x,
      const scalarField& b,
