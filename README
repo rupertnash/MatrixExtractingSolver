@@ -14,6 +14,10 @@ COMPILATION:
  - Ensure OpenFOAM has initialised your shell (i.e. you've sourced
    $WM_PROJECT_DIR/etc/bashrc).
 
+ - Create the file MatrixExtractingSolver/CrossPlatform.H. If you are
+   on OpenFOAM-extend this should define the macro "ON_EXTEND" else it
+   should be empty.
+ 
  - Make the shared object with "wmake libso"
 
 USAGE:
