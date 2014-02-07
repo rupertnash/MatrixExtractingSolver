@@ -1,3 +1,3 @@
-MatrixExtractingSolver/MatrixExtractingSolver.C
+MatrixExtractingSolver.C
 
 LIB = $(FOAM_USER_LIBBIN)/libMatrixExtractingSolver
