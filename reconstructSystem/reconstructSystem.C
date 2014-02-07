@@ -6,13 +6,6 @@
 #include "fvCFD.H"
 #include "IOobjectList.H"
 
-void KeyError(const Foam::fileName& file, const Foam::word& key)
-{
-  Foam::FatalError("main(int, char* [])", __FILE__, __LINE__)
-	<< "System file '" << file << "' has no keyword '" << key << "'"
-	<< Foam::exit(Foam::FatalError);
-}
-
 int main(int argc, char* argv[])
 {
   // enable -constant ... if someone really wants it
@@ -294,114 +287,5 @@ int main(int argc, char* argv[])
     }
 }
 
-  /*  for (int i = 1; i < argc; ++i)
-	{
-	  Foam::fileName systemFile(argv[i]);
-	  if (systemFile.ext() != "system")
-	    {
-	      Foam::Info << "Skipping file " << systemFile << Foam::endl;
-	      continue;
-	    }
-	  
-	  Foam::IFstream infile(systemFile);
-	  const Foam::dictionary sysDict(infile);
-	  
-	  // Read the source vector
-	  Foam::scalarField source;
-	  if (!sysDict.readIfPresent("source", source, false, false))
-	    KeyError(systemFile, "source");
-	  
-	  // Get the matrix sub dictionary
-	  if (!sysDict.isDict("matrix"))
-	    KeyError(systemFile, "matrix");
-	  const Foam::dictionary& matDict = sysDict.subDict("matrix");
-    
-	  // Read the diagonal array - always present
-	  Foam::scalarField diag;
-	  if (!matDict.readIfPresent("diag", diag, false, false))
-	    KeyError(systemFile, "diag");
-    
-	  // Upper and lower are optional
-	  Foam::scalarField upper;
-	  bool hasUpper = matDict.readIfPresent("upper", upper, false, false);
-	  Foam::scalarField lower;
-	  bool hasLower = matDict.readIfPresent("lower", lower, false, false);
-    
-	  // Non-diagonal matrices must have the addressing arrays.
-	  Foam::labelList upperAddr;
-	  Foam::labelList lowerAddr;
-	  if (hasLower || hasUpper)
-	    {
-	      if (!matDict.readIfPresent("upperAddr", upperAddr, false, false))
-		KeyError(systemFile, "upperAddr");
-	      if (!matDict.readIfPresent("lowerAddr", lowerAddr, false, false))
-		KeyError(systemFile, "lowerAddr");
-	    }
-	  
-	  // Write the vector as "i val" pairs
-	  {
-	    Foam::fileName fileName = systemFile.lessExt() + ".vec";
-	    Foam::OFstream file(fileName);
-	    Foam::scalarField::const_iterator ptr = source.begin(),
-	      end = source.end();
-	    for (int i = 0; ptr != end; ++ptr, ++i) {
-	      file << i << " " << *ptr << Foam::endl;
-	    }
-	  }
-	  
-	  // Write the matrix as "row col val" triples
-	  {
-	    
-	    Foam::fileName fileName = systemFile.lessExt() + ".coo";
-	    //Open the file.
-	    Foam::OFstream file(fileName);
-	    
-	    file << "# row col val" << Foam::endl;
-	    
-	    // Diagonal first
-	    Foam::scalarField::const_iterator ptr = diag.cbegin(), end = diag.cend();
-	    for (int i = 0; ptr != end; ++ptr, ++i) {
-	      file << i << " " << i << " " << *ptr << Foam::endl;
-	    }
-	    
-	    // Only do more output if non-diagonal
-	    if (hasUpper || hasLower)
-	      {
-		Foam::scalarField::const_iterator upPtr, upEnd;
-		if (hasUpper)
-		  {
-		    upPtr = upper.cbegin();
-		    upEnd = upper.cend();
-		  } else {
-		  upPtr = lower.cbegin();
-		  upEnd = lower.cend();
-		}
-		Foam::scalarField::const_iterator loPtr, loEnd;
-		if (hasLower)
-		  {
-		    loPtr = lower.cbegin();
-		    loEnd = lower.cend();
-		  } else {
-		  loPtr = upper.cbegin();
-		  loEnd = upper.cend();
-		}
-		
-		// Get the indexing arrays
-		Foam::labelList::const_iterator upAddrPtr = upperAddr.begin();
-		Foam::labelList::const_iterator loAddrPtr = lowerAddr.begin();
-		
-		// Send to the file
-		for(; loPtr != loEnd; ++loPtr, ++upPtr, ++upAddrPtr, ++loAddrPtr)
-		  {
-		    file << *upAddrPtr << " " << *loAddrPtr << " " << *loPtr << Foam::endl;
-		    file << *loAddrPtr << " " << *upAddrPtr << " " << *upPtr << Foam::endl;
-		  }
-	      }
-	  } // End write COO
-	  
-	} // End for args
-  
-	}*/
-  
   
 
