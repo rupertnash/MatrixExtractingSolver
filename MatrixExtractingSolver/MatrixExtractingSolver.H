@@ -70,10 +70,6 @@ namespace Foam
     // call virtual functions from base class constructors. To work
     // around, call this from your derived class c'tor.
     virtual void readControls();
-
-    // Helper functions
-    void writeVector(const scalarField& x, const std::string& fileName) const;
-    void writeMatrix(const lduMatrix& A, const std::string& fileName) const;
     
     virtual bool shouldWrite() const;
   private:

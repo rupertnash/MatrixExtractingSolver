@@ -1,6 +1,8 @@
 #include "MatrixExtractingSolver.H"
 #include "fileStat.H"
 #include "Time.H"
+#include "OFstream.H"
+
 #include <fstream>
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -81,28 +83,118 @@ SolverPerformance Foam::MatrixExtractingSolver::solve
   
   if (shouldWrite())
   {
-    const fileName base = appTime.timePath() + "/matrices/" + fieldName();
+    word dictMetaName = fieldName() + ".metadata";
+    IOdictionary* metaDict = NULL;
     
-    // mkdir -p $base
-    mkDir(base);
-
-    fileName vecFile;
-    for(int i = 0; ; ++i)
+    objectRegistry::const_iterator item = appTime.find(dictMetaName);
+    if (item == appTime.objectRegistry::end())
+      {
+	metaDict = new IOdictionary
+	  (
+	   IOobject
+	   (
+	    dictMetaName,
+	    appTime.constant(),
+	    appTime,
+	    IOobject::NO_READ,
+	    IOobject::NO_WRITE
+	    )
+	   );
+	metaDict->store();
+      }
+    else
+      {
+	metaDict = dynamic_cast<IOdictionary*>(item());
+      }
+    
+    label lastWriteTime = metaDict->lookupOrDefault("time", -1, false, false);
+    label subCycle = 0;
+    if (lastWriteTime == appTime.timeIndex())
+      {
+	// Iteration > 0
+	subCycle = metaDict->lookupOrDefault("iteration", subCycle, false, false) + 1;
+      }
+    
+    word dictName;
     {
-      // Find the iteration number - i.e. the smallest value that
-      // doesn't exist.
-      std::ostringstream vecFileBase;
-      vecFileBase << i << ".vec";
-      vecFile = base + "/" + vecFileBase.str();
-      if (vecFile.type() == fileName::UNDEFINED)
-	break;
-      
-      vecFile = "";
+      std::ostringstream ss;
+      ss << fieldName() << "." << subCycle << ".system"; //makeDictName(subCycle);
+      dictName = ss.str();
     }
-    // Write the system.
-    writeVector(b, vecFile);
-    writeMatrix(matrix_, vecFile.lessExt() + ".coo");
+    item = appTime.find(dictName);
+    IOdictionary* systemDict = NULL;
+    if (item == appTime.objectRegistry::end())
+      {
+	// Construct it
+	systemDict = new IOdictionary
+	  (
+	   IOobject
+	   (
+	    dictName,
+	    appTime.timeName(),
+	    appTime,
+	    IOobject::NO_READ,
+	    IOobject::NO_WRITE
+	    )
+	   );
+	systemDict->store();
+      }
+    else
+      {
+	systemDict = dynamic_cast<IOdictionary*>(item());
+      }
+    systemDict->clear();
+    
+    // Add the source vector
+    systemDict->add("source", b);
+
+    // Construct a dictionary to hold the LDU matrix
+    dictionary matrixDict;
+    
+    // Diagonal first. If not present, then the matrix is in an error
+    // state.
+    if (!matrix_.hasDiag())
+      FatalErrorIn("Foam::MatrixExtractingSolver::solve(scalarField&, const scalarField&, const direction) const")
+	<< "Matrix lacks diagonal" << exit(FatalError);
+    
+    const scalarField& diag = matrix_.diag();
+    matrixDict.add("diag", diag);
+
+    if (matrix_.hasLower()) 
+    {
+      const scalarField& lo = matrix_.lower();
+      matrixDict.add("lower", lo);
+    }
+
+    if (matrix_.hasUpper()) 
+    {
+      const scalarField& up = matrix_.upper();
+      matrixDict.add("upper", up);
+    }
+    
+    // Only non-diagonal matrices need the indexing helpers.
+    if (!matrix_.diagonal())
+    {
+      // Get the addressing helper
+      const lduAddressing& addr = matrix_.lduAddr();
+  
+      const labelList& upAddr = addr.upperAddr();
+      const labelList& loAddr = addr.lowerAddr();
+      matrixDict.add("upperAddr", upAddr);
+      matrixDict.add("lowerAddr", loAddr);
+    }
+    
+    // Add the dict representation of the matrix to the system
+    systemDict->add("matrix", matrixDict);
+  
+    // Write
+    systemDict->regIOobject::write();
+    
+    // Update the cache metadata.
+    metaDict->set("time", appTime.timeIndex());
+    metaDict->set("iteration", subCycle);
   }
+  
   return sPerf;
 }
 
@@ -111,76 +203,3 @@ bool Foam::MatrixExtractingSolver::shouldWrite() const
   return true;
 }
 
-void Foam::MatrixExtractingSolver::writeVector(const scalarField& x, const std::string& fileName) const
-{
-  Info << "Write vector to file " << fileName << endl;
-  // If the file exists, bail out.
-  fileStat status(fileName);
-  if (status.isValid())
-    FatalErrorIn("Foam::MatrixExtractingSolver::writeVector(const scalarField&, const std::string&) const")
-      << "File '" << fileName << "' already exists." << exit(FatalError);
-  
-  //Open the file.
-  std::ofstream file(fileName.c_str());
-  scalarField::const_iterator ptr = x.begin(), end = x.end();
-  for (; ptr != end; ++ptr) {
-    file << *ptr << std::endl;
-  }
-}
-
-void Foam::MatrixExtractingSolver::writeMatrix(const lduMatrix& A, const std::string& fileName) const
-{
-  Info << "Write matrix to file " << fileName << endl;
-  // If the file exists, bail out.
-  fileStat status(fileName);
-  if (status.isValid())
-    FatalErrorIn("Foam::MatrixExtractingSolver::writeMatrix(const lduMatrix&, const std::string&) const")
-      << "File '" << fileName << "' already exists." << exit(FatalError);
-  
-  //Open the file.
-  std::ofstream file(fileName.c_str());
-  file << "# row col val" << std::endl;
-
-  // Diagonal first. If not present, then the matrix is in an error
-  // state.
-  if (!A.hasDiag())
-    FatalErrorIn("Foam::MatrixExtractingSolver::writeMatrix(const lduMatrix&, const std::string&) const")
-      << "Matrix lacks diagonal" << exit(FatalError);
-  
-  const scalarField& diag = A.diag();
-  scalarField::const_iterator ptr = diag.begin(), end = diag.end();
-  unsigned i = 0;
-  for (; ptr != end; ++ptr, ++i) {
-    file << i << " " << i << " " << *ptr << std::endl;
-  }
-  
-  // Nothing more to be done for a diagonal matrix.
-  if (A.diagonal())
-    return;
-
-  // Get the addressing helper
-  const lduAddressing& addr = A.lduAddr();
-  
-  // Note that lduMatrix will return the same data for both upper and
-  // lower if it's symmetric. This is helpful.
-  
-  // Get the indexing arrays
-  labelList::const_iterator upAddrPtr = addr.upperAddr().begin();
-  labelList::const_iterator loAddrPtr = addr.lowerAddr().begin();
-
-  const scalarField& lo = A.lower();
-  scalarField::const_iterator loPtr = lo.begin(), loEnd = lo.end();
-  labelList::const_iterator& loRowPtr = upAddrPtr;
-  labelList::const_iterator& loColPtr = loAddrPtr;
-
-  const scalarField& up = A.upper();
-  scalarField::const_iterator upPtr = up.begin();
-  labelList::const_iterator& upRowPtr = loAddrPtr;
-  labelList::const_iterator& upColPtr = upAddrPtr;
-  
-  for(; loPtr != loEnd; ++loPtr, ++upPtr, ++loRowPtr, ++loColPtr)
-  {
-    file << *loRowPtr << " " << *loColPtr << " " << *loPtr << std::endl;
-    file << *upRowPtr << " " << *upColPtr << " " << *upPtr << std::endl;
-  }
-}
