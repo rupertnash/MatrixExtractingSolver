@@ -1,0 +1,8 @@
+EXE_INC = \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    $(WM_DECOMP_INC)
+
+EXE_LIBS = \
+    -lfiniteVolume \
+    -lmeshTools \
+    $(WM_DECOMP_LIBS)

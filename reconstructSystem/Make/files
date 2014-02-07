@@ -1,0 +1,4 @@
+reconstructSystem.C
+processorMeshes.C
+
+EXE = $(FOAM_USER_APPBIN)/reconstructSystem
