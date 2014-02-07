@@ -1,0 +1,6 @@
+You must create symbolic links (in this directory) to the processorMeshes.{H,C} files which are part of reconstructPar's implementation.
+
+ln -s $FOAM_APP/utilities/parallelProcessing/reconstructPar/processorMeshes.H
+ln -s $FOAM_APP/utilities/parallelProcessing/reconstructPar/processorMeshes.C
+
+Then you can run wmake.
