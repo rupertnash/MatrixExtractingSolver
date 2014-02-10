@@ -1,0 +1,29 @@
+convertSystem
+
+This is an OF utility to convert the OF format system dumps into two
+simple text files, one for the matrix and the other for the vector.
+
+COMPILATION:
+
+ - Ensure OpenFOAM has initialised your shell (i.e. you've sourced
+   $WM_PROJECT_DIR/etc/bashrc).
+
+ - Run wmake
+
+USAGE:
+
+ - On the commandline, from the case directory, run with
+   "convertSystem"
+
+ - Use the "-help" option for detailed usage. Options work as for
+   reconstructPar to select times to convert. Does not have the
+   field selection options.
+
+ - Note that if you are processing a parallel run, you must have first
+   run reconstructSystem.
+
+OUTPUT:
+
+ - For every .system file, creates a .coo file (the matrix, in COO
+   format, i.e. "row col val" triples, one per line) and a .vec file
+   (one entry per line).

@@ -1,96 +1,17 @@
-Simple OpenFOAM solver that allows extraction of the linear system
-matrix and source terms to a file.
+OpenFOAM matrix extraction
 
-It delegates the actual solution of the system to a real solver as
-specified by the "worker" keyword in the case's system/fvSolution
-dictionary.
+This contains 4 parts: 
 
-LIMITATIONS:
+ * MatrixExtractingSolver - an OF solver that writes the linear system
+   to a file - works in parallel.
    
- - Almost certainly doesn't work in parallel
+ * reconstructSystem - an OF utility to reassemble the output of a
+   parallel run into a single file (a la reconstructPar).
 
-COMPILATION:
+ * convertSystem - an OF utility to read a (possiby reconstructed)
+   .system file and write out simple text format files (.vec and .coo)
+   which represent the vector and COO format matrix, respectively.
 
- - Ensure OpenFOAM has initialised your shell (i.e. you've sourced
-   $WM_PROJECT_DIR/etc/bashrc).
+ * FoamMatrix.py - simple python module to read the above for further
+   processing (required numpy and scipy).
 
- - Create the file MatrixExtractingSolver/CrossPlatform.H. If you are
-   on OpenFOAM-extend this should define the macro "ON_EXTEND" else it
-   should be empty.
- 
- - Make the shared object with "wmake libso"
-
-USAGE:
-
- - Go to the case you want to extract the matrix from
-
- - Tell OpenFOAM to load the shared library by adding:
-   libs(
-    "libMatrixExtractingSolver.so"
-   );
-   to 'system/controlDict'.
-
- - Edit 'system/fvSolution' to replace the solver of interest with
-   MatrixExtractingSolver and place the original solver's parameters
-   in a subdictionary under the keyword "worker".
-
-   For example
-   Old "system/fvSolution":
-
-// Headers etc...
-solvers
-{
-    p
-    {
-        solver          PCG;
-        preconditioner  DIC;
-        tolerance       1e-06;
-        relTol          0;
-    }
-    
-    // Other solvers...
-}
-
-
-    New system/fvSolution:
-// Headers etc...
-solvers
-{
-    p
-    {
-        solver          MatrixExtractingSolver;
-	worker
-        {
-          solver          PCG;
-          preconditioner  DIC;
-          tolerance       1e-06;
-          relTol          0;
-	}
-    }
-    
-    // Other solvers...
-}
-
-OUTPUT:
-
- - Writes every time the specified field is solved for in a standard
-   OpenFOAM time directory
-
- - Writes field matrices in a directory named for the fieldName passed
-   to the linear solve (so you will often get "Ux" and "Uy"
-   directories)
-
- - In each time/field directory there will be a series of zero-indexed
-   files for the matrix (i.coo) and vector (i.vec) that define the
-   linear system. If there are multiple solves per timestep there will
-   be more than one, e.g. for icoFoam you will get (at least) two
-   matrixes because of the pressure correction in the PISO algorithm.
-   
- - Vector format: simple ASCII with one element per line
-
- - Matrix format: Uses sparse COO format in simple ASCII. Each line is:
-   row col val
-   for every non-zero element in the matrix.
-
- - IMPORTANT: if you re-run this, be sure to remove all matrix
-   directories!

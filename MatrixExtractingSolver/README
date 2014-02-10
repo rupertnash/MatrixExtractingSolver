@@ -1,0 +1,81 @@
+MatrixExtractingSolver
+
+This delegates the actual solution of the system to a real solver as
+specified by the "worker" keyword in the case's system/fvSolution
+dictionary.
+
+COMPILATION:
+
+ - Ensure OpenFOAM has initialised your shell (i.e. you've sourced
+   $WM_PROJECT_DIR/etc/bashrc).
+
+ - Create the file MatrixExtractingSolver/CrossPlatform.H. If you are
+   on OpenFOAM-extend this should define the macro "ON_EXTEND" else it
+   should be empty.
+ 
+ - Make the shared object with "wmake libso"
+
+USAGE:
+
+ - Go to the case you want to extract the matrix from
+
+ - Tell OpenFOAM to load the shared library by adding:
+   libs(
+    "libMatrixExtractingSolver.so"
+   );
+   to 'system/controlDict'.
+
+ - Edit 'system/fvSolution' to replace the solver of interest with
+   MatrixExtractingSolver and place the original solver's parameters
+   in a subdictionary under the keyword "worker".
+
+   For example
+   Old "system/fvSolution":
+
+// Headers etc...
+solvers
+{
+    p
+    {
+        solver          PCG;
+        preconditioner  DIC;
+        tolerance       1e-06;
+        relTol          0;
+    }
+    
+    // Other solvers...
+}
+
+
+    New system/fvSolution:
+// Headers etc...
+solvers
+{
+    p
+    {
+        solver          MatrixExtractingSolver;
+	worker
+        {
+          solver          PCG;
+          preconditioner  DIC;
+          tolerance       1e-06;
+          relTol          0;
+	}
+    }
+    
+    // Other solvers...
+}
+
+OUTPUT:
+
+ - Writes every time the specified field is solved for in a standard
+   OpenFOAM time directory
+
+ - In each time directory there will be a series of .system files. The
+   filename is $FIELDNAME.$ITER.system, where $FIELDNAME is the name
+   of the field being solved for (e.g. Ux) and $ITER is the
+   per-timestep counter for the iteration number (when there multiple
+   solves per timestep there will be more than one, e.g. for icoFoam
+   you will get (at least) two systems because of the pressure
+   correction in the PISO algorithm)
+   

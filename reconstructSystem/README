@@ -1,6 +1,32 @@
-You must create symbolic links (in this directory) to the processorMeshes.{H,C} files which are part of reconstructPar's implementation.
+reconstructSystem
 
-ln -s $FOAM_APP/utilities/parallelProcessing/reconstructPar/processorMeshes.H
-ln -s $FOAM_APP/utilities/parallelProcessing/reconstructPar/processorMeshes.C
+THis is an OF utility to reassemble the output of a parallel run into
+a single file (a la reconstructPar).
 
-Then you can run wmake.
+COMPILATION:
+
+ - Ensure OpenFOAM has initialised your shell (i.e. you've sourced
+   $WM_PROJECT_DIR/etc/bashrc).
+
+ - Create symbolic links (in this directory) to the
+   processorMeshes.{H,C} files which are part of reconstructPar's
+   implementation.
+   
+   ln -s $FOAM_APP/utilities/parallelProcessing/reconstructPar/processorMeshes.H
+   ln -s $FOAM_APP/utilities/parallelProcessing/reconstructPar/processorMeshes.C
+
+ - Run wmake
+
+USAGE:
+
+ - On the commandline, from the case directory, run with
+   "reconstructSystem"
+
+ - Use the "-help" option for detailed usage. Options work as for
+   reconstructPar to select times to reconstruct. Does not have the
+   field selection options.
+
+OUTPUT:
+
+ - Creates time directories in the case top level corresponding to
+   those selected from the per-processor databases.
