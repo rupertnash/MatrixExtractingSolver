@@ -1,0 +1,6 @@
+*~
+*.dep
+lnInclude
+Make
+MatrixExtractingSolver/CrossPlatform.H
+reconstructSystem/processorMeshes.*
