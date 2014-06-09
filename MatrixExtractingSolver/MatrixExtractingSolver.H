@@ -72,6 +72,10 @@ namespace Foam
     virtual void readControls();
     
     virtual bool shouldWrite() const;
+    
+    //- Get the matrix coefficients that cross processor boundaries
+    dictionary GetInterfaceCoeffs(const direction cmpt) const;
+    
   private:
     // This is the actual solver to which we delegate the work.
     autoPtr<lduMatrix::solver> worker;

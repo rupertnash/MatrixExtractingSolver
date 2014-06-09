@@ -2,8 +2,10 @@
 #include "fileStat.H"
 #include "Time.H"
 #include "OFstream.H"
+#include "processorFvPatchField.H"
 
 #include <fstream>
+#include <unistd.h>
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -65,6 +67,50 @@ void Foam::MatrixExtractingSolver::readControls()
 
   const dictionary& workerDict = solverDict.subDict("worker");
   worker->read(workerDict);
+}
+
+// Helper function for getting the coefficients (because there are multiple possible types of patch field).
+template <typename T>
+void AddInterface(Foam::dictionary& interfacesDict, const Foam::processorFvPatchField<T>* ptr, const Foam::scalarField& coupleCoeffs)
+{
+  const int neigh = ptr->neighbProcNo();
+  const Foam::word neighName(Foam::word("processor") + Foam::name(neigh));
+  Foam::dictionary thisInterfaceDict;
+  
+  const Foam::fvPatch& patch = ptr->patch();
+  const Foam::unallocLabelList& localCellIds = patch.faceCells();
+  
+  thisInterfaceDict.add("localCellIds", localCellIds);
+  thisInterfaceDict.add("coeffs", coupleCoeffs);
+  
+  interfacesDict.add(neighName, thisInterfaceDict);
+}
+
+Foam::dictionary Foam::MatrixExtractingSolver::GetInterfaceCoeffs(const direction cmpt) const
+{
+  dictionary interfaceDict;
+  forAll (interfaces_, interfaceI)
+  {
+    if (interfaces_.set(interfaceI))
+    {
+      const scalarField& coeffs = coupleBouCoeffs_[interfaceI];
+      if (const processorFvPatchField<Vector<double> >* ptr = dynamic_cast<const processorFvPatchField<Vector<double> >*>(interfaces_(interfaceI)))
+      {
+	AddInterface(interfaceDict, ptr, coeffs);
+      }
+      else if (const processorFvPatchField<double>* ptr = dynamic_cast<const processorFvPatchField<double>*>(interfaces_(interfaceI)))
+      {
+	AddInterface(interfaceDict, ptr, coeffs);
+      }
+      else
+      {
+	// Error
+	FatalErrorIn("Foam::MatrixExtractingSolver::solve(scalarField&, const scalarField&, const direction) const")
+	  << "Can't cast interface to a concrete type" << exit(FatalError);
+      }
+    }
+  }
+  return interfaceDict;
 }
 
 //- Solve the matrix with this solver
@@ -186,7 +232,10 @@ SolverPerformance Foam::MatrixExtractingSolver::solve
     
     // Add the dict representation of the matrix to the system
     systemDict->add("matrix", matrixDict);
-  
+    
+    dictionary interfaceDict = GetInterfaceCoeffs(cmpt);
+    systemDict->add("interfaces", interfaceDict);
+    
     // Write
     systemDict->regIOobject::write();
     
