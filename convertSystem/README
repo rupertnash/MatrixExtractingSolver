@@ -19,6 +19,11 @@ USAGE:
    reconstructPar to select times to convert. Does not have the
    field selection options.
 
+ - The "-format" option control output. Options are:
+   * ascii - plain text
+   * binary - raw, unstructured binary format in the platform's default format
+   * numpy - Numpy format (read with numpy.load function)
+   
  - Note that if you are processing a parallel run, you must have first
    run reconstructSystem.
 
